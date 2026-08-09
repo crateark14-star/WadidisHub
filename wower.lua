@@ -74,10 +74,10 @@ local CONFIG = {
         ["Weight Rune"]       = false,
         ["Fortune Rune"]      = false,
         ["Detonation Rune"]   = false,
-        ["Preservation Rune"] = true,
+        ["Preservation Rune"] = false,
         ["Warmth Rune"]       = false,
         ["Excavator Rune"]    = false,
-        ["Colossus Rune"]     = true,
+        ["Colossus Rune"]     = false,
     },
 
     boulderFiltersDefault = {
