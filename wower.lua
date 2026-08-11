@@ -45,9 +45,9 @@ local CONFIG = {
 
     sizeFiltersDefault = {
         S         = false,
-        M         = true,
-        L         = true,
-        XL        = true,
+        M         = false,
+        L         = false,
+        XL        = false,
         Giant     = true,
         Colossal  = true,
         Titan     = true,
