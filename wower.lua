@@ -47,7 +47,7 @@ local CONFIG = {
         S         = false,
         M         = false,
         L         = false,
-        XL        = false,
+        XL        = true,
         Giant     = true,
         Colossal  = true,
         Titan     = true,
@@ -69,15 +69,15 @@ local CONFIG = {
 
     runeFiltersDefault = {
         ["Luck Rune"]         = false,
-        ["Haste Rune"]        = false,
-        ["Storm Rune"]        = false,
-        ["Weight Rune"]       = false,
+        ["Haste Rune"]        = true,
+        ["Storm Rune"]        = true,
+        ["Weight Rune"]       = true,
         ["Fortune Rune"]      = false,
         ["Detonation Rune"]   = false,
-        ["Preservation Rune"] = false,
+        ["Preservation Rune"] = true,
         ["Warmth Rune"]       = false,
         ["Excavator Rune"]    = false,
-        ["Colossus Rune"]     = false,
+        ["Colossus Rune"]     = true,
     },
 
     boulderFiltersDefault = {
@@ -792,7 +792,7 @@ end
 local function scanAndBuildQueue()
     log("Scanning for boulders...")
     tweenTo(SCAN_POS)
-    task.wait(2.25)
+    task.wait(0.9)
 
     local data = updateBoulderData()
 
@@ -801,7 +801,7 @@ local function scanAndBuildQueue()
         log("First scan – waiting up to 30s for boulders to appear...")
         local waitStart = tick()
         while #data == 0 and (tick() - waitStart) < 30 and not state.stopScript and state.masterEnabled do
-            task.wait(0.5)
+            task.wait(2)
             data = updateBoulderData()
             if #data > 0 then
                 log("Boulders appeared after", string.format("%.1f", tick() - waitStart), "s – resuming.")
@@ -1150,8 +1150,11 @@ end
 local function deleteRunes()
     if not state.masterEnabled or state.stopScript then return end
 
+    local droppedRunesFolder = Workspace:FindFirstChild("DroppedRunes")
+    if not droppedRunesFolder then return end
+
     local count = 0
-    for _, obj in ipairs(Workspace:GetChildren()) do
+    for _, obj in ipairs(droppedRunesFolder:GetChildren()) do
         if obj:IsA("Model") or obj:IsA("MeshPart") or obj:IsA("BasePart") then
             local lower = (obj.Name or ""):lower()
             if (lower:find("rune", 1, true) or lower:find("enchant", 1, true))
@@ -1266,8 +1269,11 @@ end
 local function collectProtectedRunes()
     if not state.masterEnabled or state.stopScript then return end
 
+    local droppedRunesFolder = Workspace:FindFirstChild("DroppedRunes")
+    if not droppedRunesFolder then return end
+
     local qualifying = {}
-    for _, obj in ipairs(Workspace:GetChildren()) do
+    for _, obj in ipairs(droppedRunesFolder:GetChildren()) do
         if isProtectedRune(obj) and obj.Parent then
             if obj:IsA("MeshPart") or obj:IsA("Model") or obj:IsA("BasePart") then
                 table.insert(qualifying, obj)
@@ -1342,12 +1348,25 @@ local function collectProtectedRunes()
     log("Protected runes cycle finished.")
 end
 
+
 -- ====================== GUI ======================
 local function createGUI()
-    -- Cleanup any previous instances
-    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        if gui.Name:find("CombinedBoulderCrystal", 1, true) then
-            gui:Destroy()
+    -- Cleanup any previous instances from possible parents (PlayerGui / CoreGui / gethui)
+    -- This prevents leftover GUIs and avoids interfering with other game UI
+    local parentsToClean = { player.PlayerGui, CoreGui }
+    if typeof(gethui) == "function" then
+        local ok, hui = pcall(gethui)
+        if ok and hui then
+            table.insert(parentsToClean, hui)
+        end
+    end
+    for _, parent in ipairs(parentsToClean) do
+        if parent then
+            for _, gui in ipairs(parent:GetChildren()) do
+                if gui.Name:find("CombinedBoulderCrystal", 1, true) then
+                    pcall(function() gui:Destroy() end)
+                end
+            end
         end
     end
 
@@ -1355,7 +1374,16 @@ local function createGUI()
     screenGui.Name = "CombinedBoulderCrystal"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = player.PlayerGui
+    -- Parent to protected container so the UI survives character respawns / partial reloads
+    -- (PlayerGui can be cleared by the game; CoreGui / gethui is far more persistent)
+    local guiParent = CoreGui
+    if typeof(gethui) == "function" then
+        local ok, hui = pcall(gethui)
+        if ok and hui then
+            guiParent = hui
+        end
+    end
+    screenGui.Parent = guiParent
 
     -- Main frame (compact with tabs)
     local main = Instance.new("Frame")
@@ -2202,8 +2230,6 @@ if not digEvent then
     warn("[Bot] DigRequest remote not found – rejoining game...")
     rejoinGame()
 end
-
-task.wait(2)
 
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
