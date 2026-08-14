@@ -68,15 +68,15 @@ local CONFIG = {
     },
 
     runeFiltersDefault = {
-        ["Luck Rune"]         = false,
+        ["Luck Rune"]         = true,
         ["Haste Rune"]        = true,
         ["Storm Rune"]        = true,
         ["Weight Rune"]       = true,
-        ["Fortune Rune"]      = false,
-        ["Detonation Rune"]   = false,
+        ["Fortune Rune"]      = true,
+        ["Detonation Rune"]   = true,
         ["Preservation Rune"] = true,
-        ["Warmth Rune"]       = false,
-        ["Excavator Rune"]    = false,
+        ["Warmth Rune"]       = true,
+        ["Excavator Rune"]    = true,
         ["Colossus Rune"]     = true,
     },
 
@@ -1077,10 +1077,14 @@ local function hasQualifyingCollectibles()
         end
     end
 
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if isProtectedRune(obj) and obj.Parent then
-            if obj:IsA("MeshPart") or obj:IsA("Model") or obj:IsA("BasePart") then
-                return true
+    -- Must mirror collectProtectedRunes / deleteRunes: runes live under DroppedRunes
+    local droppedRunesFolder = Workspace:FindFirstChild("DroppedRunes")
+    if droppedRunesFolder then
+        for _, obj in ipairs(droppedRunesFolder:GetChildren()) do
+            if isProtectedRune(obj) and obj.Parent then
+                if obj:IsA("MeshPart") or obj:IsA("Model") or obj:IsA("BasePart") then
+                    return true
+                end
             end
         end
     end
